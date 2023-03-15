@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { Wrapper } from './App.styled';
 import { Searchbar } from 'components/Searchbar/Searchbar';
 import { ImageGallery } from 'components/ImageGallery/ImageGallery';
@@ -9,131 +9,79 @@ import { Modal } from 'components/Modal/Modal';
 
 var Scroll = require('react-scroll');
 var scroll = Scroll.animateScroll;
-export class App extends Component {
-  state = {
-    query: '',
-    page: 1,
-    images: [],
-    showModal: false,
-    largeImageURL: '',
-    tags: '',
-    showBtn: false,
-    isLoading: false,
-    error: '',
+
+export function App() {
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [images, setImages] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  const [tags, setTags] = useState('');
+  const [showBtn, setShowBtn] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    document.addEventListener('keydown', onKeyEscPress, false);
+    return () => {
+      document.removeEventListener('keydown', onKeyEscPress, false);
+    };
+  }, []);
+
+  useEffect(() => {
+    setIsLoading(true);
+    ImageApi.getImages(query, page)
+      .then(data => {
+        if (!data.hits.length) {
+          setIsLoading(false);
+          setShowBtn(false);
+          return;
+        }
+        // console.log('data =', data);
+        if (!images.length) {
+          setImages([...data.hits]);
+          setShowBtn(true);
+          // } else setImages(prevImages => [...prevImages, ...data.hits]);
+        } else setImages([...images, ...data.hits]);
+        setShowBtn(true);
+        if (data.totalHits <= images.length + 12) setShowBtn(false);
+      })
+      .catch(error => setError(error.message))
+      .finally(setTimeout(() => setIsLoading(false), 1000));
+  }, [query, page]);
+
+  const onSubmitForm = word => {
+    setQuery(word);
+    setImages([]);
+    setPage(1);
   };
 
-  componentDidMount() {
-    document.addEventListener('keydown', this.onKeyEscPress, false);
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    const { images, query, page } = this.state;
-    if (query !== prevState.query || page !== prevState.page) {
-      this.setState({
-        isLoading: true,
-      });
-    }
-
-    if (
-      query !== prevState.query ||
-      page !== prevState.page ||
-      !images.length
-    ) {
-      ImageApi.getImages(query, page)
-        .then(data => {
-          if (!data.hits.length) {
-            this.setState({
-              showBtn: false,
-            });
-            return;
-          }
-          // console.log('data =', data);
-          if (!images.length) {
-            this.setState(prevState => ({
-              images: [...data.hits],
-              showBtn: true,
-            }));
-          } else
-            this.setState(prevState => ({
-              images: [...prevState.images, ...data.hits],
-              showBtn: true,
-            }));
-          if (data.totalHits <= this.state.images.length + 12)
-            this.setState({
-              showBtn: false,
-            });
-        })
-        .catch(error => {
-          this.setState({
-            error: error.message,
-          });
-        })
-        .finally(
-          setTimeout(() => {
-            this.setState({ isLoading: false });
-          }, 1000)
-        );
-    }
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('keydown', this.onKeyEscPress, false);
-  }
-
-  onSubmitForm = word => {
-    this.setState({
-      query: word,
-      images: [],
-      page: 1,
-    });
-  };
-
-  onClickButton = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
+  const onClickButton = () => {
+    setPage(prevPage => prevPage + 1);
     scroll.scrollToBottom();
   };
 
-  onClickClose = () => {
-    this.setState({
-      showModal: false,
-    });
+  const onClickClose = () => setShowModal(false);
+
+  const onClickImage = ({ largeImageURL, tags }) => {
+    setShowModal(true);
+    setLargeImageURL(largeImageURL);
+    setTags(tags);
   };
 
-  onClickImage = ({ largeImageURL, tags }) => {
-    this.setState({
-      showModal: true,
-      largeImageURL: largeImageURL,
-      tags: tags,
-    });
+  const onKeyEscPress = event => {
+    if (event.keyCode === 27) setShowModal(false);
   };
 
-  onKeyEscPress = event => {
-    if (event.keyCode === 27)
-      this.setState({
-        showModal: false,
-      });
-  };
-
-  render() {
-    return (
-      <Wrapper>
-        <Searchbar onSubmit={this.onSubmitForm} />
-        <ImageGallery
-          images={this.state.images}
-          onClickImage={this.onClickImage}
-        />
-        {this.state.isLoading && <Loader />}
-        {this.state.showBtn && <Button onClickButton={this.onClickButton} />}
-        {this.state.showModal && (
-          <Modal
-            image={this.state.largeImageURL}
-            tags={this.state.tags}
-            onClickClose={this.onClickClose}
-          />
-        )}
-      </Wrapper>
-    );
-  }
+  return (
+    <Wrapper>
+      <Searchbar onSubmit={onSubmitForm} />
+      <ImageGallery images={images} onClickImage={onClickImage} />
+      {isLoading && <Loader />}
+      {showBtn && <Button onClickButton={onClickButton} />}
+      {showModal && (
+        <Modal image={largeImageURL} tags={tags} onClickClose={onClickClose} />
+      )}
+    </Wrapper>
+  );
 }
