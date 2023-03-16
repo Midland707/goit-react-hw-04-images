@@ -76,7 +76,9 @@ export function App() {
   return (
     <Wrapper>
       <Searchbar onSubmit={onSubmitForm} />
-      <ImageGallery images={images} onClickImage={onClickImage} />
+      {images.length ? (
+        <ImageGallery images={images} onClickImage={onClickImage} />
+      ) : null}
       {isLoading && <Loader />}
       {showBtn && <Button onClickButton={onClickButton} />}
       {showModal && (
