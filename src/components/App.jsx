@@ -19,7 +19,7 @@ export function App() {
   const [tags, setTags] = useState('');
   const [showBtn, setShowBtn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [reQuery, setReQuery] = useState(false);
 
   useEffect(() => {
     document.addEventListener('keydown', onKeyEscPress, false);
@@ -29,31 +29,31 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    setIsLoading(true);
-    ImageApi.getImages(query, page)
-      .then(data => {
-        if (!data.hits.length) {
-          setIsLoading(false);
-          setShowBtn(false);
-          return;
-        }
-        // console.log('data =', data);
-        if (!images.length) {
-          setImages([...data.hits]);
+    if (query !== '') {
+      setIsLoading(true);
+      ImageApi.getImages(query, page)
+        .then(data => {
+          if (!data.hits.length) {
+            setIsLoading(false);
+            setShowBtn(false);
+            return;
+          }
           setShowBtn(true);
-          // } else setImages(prevImages => [...prevImages, ...data.hits]);
-        } else setImages([...images, ...data.hits]);
-        setShowBtn(true);
-        if (data.totalHits <= images.length + 12) setShowBtn(false);
-      })
-      .catch(error => setError(error.message))
-      .finally(setTimeout(() => setIsLoading(false), 1000));
-  }, [query, page]);
+          // console.log('data =', data);
+          setShowBtn(page < Math.ceil(data.totalHits / 12));
+          if (!reQuery) setImages(prevImages => [...prevImages, ...data.hits]);
+          setReQuery(false);
+        })
+        .catch(error => console.log(error.message))
+        .finally(setTimeout(() => setIsLoading(false), 1000));
+    }
+  }, [query, page, reQuery]);
 
   const onSubmitForm = word => {
     setQuery(word);
     setImages([]);
     setPage(1);
+    if (word === query) setReQuery(true);
   };
 
   const onClickButton = () => {
