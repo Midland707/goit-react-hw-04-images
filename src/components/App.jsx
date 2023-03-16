@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Wrapper } from './App.styled';
 import { Searchbar } from 'components/Searchbar/Searchbar';
 import { ImageGallery } from 'components/ImageGallery/ImageGallery';
-import * as ImageApi from 'components/ImageApi/ImageApi';
+import * as imageApi from '../service/imageApi';
 import { Loader } from 'components/Loader/Loader';
 import { Button } from 'components/Button/Button';
 import { Modal } from 'components/Modal/Modal';
@@ -31,7 +31,8 @@ export function App() {
   useEffect(() => {
     if (query !== '') {
       setIsLoading(true);
-      ImageApi.getImages(query, page)
+      imageApi
+        .getImages(query, page)
         .then(data => {
           if (!data.hits.length) {
             setIsLoading(false);
